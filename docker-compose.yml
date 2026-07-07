@@ -104,6 +104,7 @@ services:
     # Este comando es el que evita que el contenedor se muera
     command: listen --forward-to http://host.docker.internal:${PAYMENTS_MS_PORT}/payments/webhook
 
-  # hookdeck listen 3003 stripe-to-localhost --path /payments/webhook
+# Ejecutar esto en payments-ms
+# hookdeck listen 3003 stripe-to-localhost --path /payments/webhook
 
 
