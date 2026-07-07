@@ -40,8 +40,11 @@ services:
     depends_on:
       - nats-servers
     build: ./products-ms
-    ports:
-      - "3001:3001"
+
+    # al utilizar port en la definicion del servicio exponemos un puerto fuera de la red del contenedor con un puerto dentro del contenedor
+    # la idea es que en produccion todos los servicios sean inaccessible con excepcion del client-gateway (ya que este es la puerta de entrada) y payment-ms (por el webhook) 
+    # ports:
+    #   - "3001:3001"
     volumes:
       - ./products-ms/src:/usr/src/app/src
     command: npm run start:dev
@@ -56,8 +59,12 @@ services:
       - nats-servers
       - order-db
     build: ./orders-ms
-    ports:
-      - "3002:3002"
+
+
+    # al utilizar port en la definicion del servicio exponemos un puerto fuera de la red del contenedor con un puerto dentro del contenedor
+    # la idea es que en produccion todos los servicios sean inaccessible con excepcion del client-gateway (ya que este es la puerta de entrada) y payment-ms (por el webhook) 
+    # ports:
+    #   - "3002:3002"
     volumes:
       - ./orders-ms/src:/usr/src/app/src
     command: npm run start:dev
@@ -69,6 +76,9 @@ services:
   payments-ms:
     container_name: payments-ms
     build: ./payments-ms
+
+    # al utilizar port en la definicion del servicio exponemos un puerto fuera de la red del contenedor con un puerto dentro del contenedor
+    # la idea es que en produccion todos los servicios sean inaccessible con excepcion del client-gateway (ya que este es la puerta de entrada) y payment-ms (por el webhook) 
     ports:
       - "${PAYMENTS_MS_PORT}:${PAYMENTS_MS_PORT}"
     volumes:
@@ -93,7 +103,6 @@ services:
       - ./stripe_config:/root/.config/stripe
     # Este comando es el que evita que el contenedor se muera
     command: listen --forward-to http://host.docker.internal:${PAYMENTS_MS_PORT}/payments/webhook
-
 
   # hookdeck listen 3003 stripe-to-localhost --path /payments/webhook
 
