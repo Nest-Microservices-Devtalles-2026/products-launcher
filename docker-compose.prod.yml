@@ -1,114 +1,79 @@
 
+# NOTA SUPER IMPORTANTE: 
+# Al hacer la contruccion de la imagen (docker compose -f docker-compose.prod.yml build)
+# no se necesitan los siguiente atributos PORTS, VOLUMES, COMMAND, ENVIRONMENT
+## PERO.....
+# Al momento de arrancar el proyecto (docker compose -f docker-compose.prod.yml up)
+# ahi si es necesario tener PORTS y ENVIRONMENT
+
+
 services:
   nats-servers:
+    container_name: nats-servers
     image: nats
 
-  # order-db:
-  #   container_name: orders_database
-  #   image: postgres:16.2
-  #   restart: always
-  #   volumes:
-  #     - ./orders-ms/postgres:/var/lib/postgresql/data
-  #   ports:
-  #     - 5432:5432
-  #   environment:
-  #     - POSTGRES_USER=postgres
-  #     - POSTGRES_PASSWORD=123456
-  #     - POSTGRES_DB=ordersdb
-
   client-gateway:
-    image: client-gateway-pro
+    image: us-east4-docker.pkg.dev/tienda-microservices-505922/images-registry/client-gateway
+    container_name: client-gateway-ms
     build: 
       context: ./client-gateway #proceso de contruccion de la imagen esta en el client-gateway
-      dockerfile: dockerfile.prod    
+      dockerfile: dockerfile.prod
     ports:
-      - "${CLIENT_GATEWAY_PORT}:${CLIENT_GATEWAY_PORT}"
+      - ${CLIENT_GATEWAY_PORT}:${CLIENT_GATEWAY_PORT}
     environment:
-      - PORT=3000
-      - NATS_SERVERS=nats://nats-servers:4222
+      - PORT=${CLIENT_GATEWAY_PORT}
+      - NATS_SERVERS=${NATS_SERVERS}
   
   products-ms:
-    image: products-ms-prod
+    image: us-east4-docker.pkg.dev/tienda-microservices-505922/images-registry/products-ms
     container_name: products-ms
     build: 
       context: ./products-ms
       dockerfile: dockerfile.prod
-      args:
-        - PORT=3001
-        - NATS_SERVERS=nats://nats-servers:4222
-        - DATABASE_URL=file:./dev.db
     environment:
-      - PORT=3001
-      - NATS_SERVERS=nats://nats-servers:4222
-      - DATABASE_URL=file:./dev.db
-
+      - PORT=${PRODUCTS_MS_PORT}
+      - NATS_SERVERS=${NATS_SERVERS}
+      - DATABASE_URL=${PRODUCT_DATABASE_URL}
+  
   orders-ms:
-    image: orders-ms-prod
+    image: us-east4-docker.pkg.dev/tienda-microservices-505922/images-registry/orders-ms
     container_name: orders-ms
     build:   
       context: ./orders-ms
       dockerfile: dockerfile.prod
-      args:
-        - PORT=3002
-        - NATS_SERVERS=nats://nats-servers:4222
-        - DATABASE_URL=${ORDERS_DATABASE_URL}
     environment:
-      - PORT=3002
-      - NATS_SERVERS=nats://nats-servers:4222
+      - PORT=${ORDERS_MS_PORT}
+      - NATS_SERVERS=${NATS_SERVERS}
       - DATABASE_URL=${ORDERS_DATABASE_URL}
   
+  auth-ms:
+    image: us-east4-docker.pkg.dev/tienda-microservices-505922/images-registry/auth-ms
+    container_name: auth-ms
+    build:
+      context: ./auth-ms
+      dockerfile: dockerfile.prod
+    environment:
+      - PORT=${AUTH_MS}
+      - NATS_SERVERS=${NATS_SERVERS}
+      - DATABASE_URL=${AUTH_DATABASE_URL}
+      - JWT_SECRET=${JWT_SECRET}
+
   payments-ms:
-    image: payments-ms-prod
+    image: us-east4-docker.pkg.dev/tienda-microservices-505922/images-registry/payments-ms
     container_name: payments-ms
     build: 
       context: ./payments-ms
       dockerfile: dockerfile.prod
-      args:
-        - PORT=${PAYMENTS_MS_PORT}
-        - NATS_SERVERS=nats://nats-servers:4222
-        - STRIPE_SECRET=${STRIPE_SECRET}
-        - ENDPOINT_SECRET_TESTING=${ENDPOINT_SECRET_TESTING}
-        - ENDPOINT_SECRET_OFFICIAL=${ENDPOINT_SECRET_OFFICIAL}
-        - STRIPE_SUCCESS_URL=${STRIPE_SUCCESS_URL}
-        - STRIPE_CANCEL_URL=${STRIPE_CANCEL_URL}
-
-    # al utilizar port en la definicion del servicio exponemos un puerto fuera de la red del contenedor con un puerto dentro del contenedor
-    # la idea es que en produccion todos los servicios sean inaccessible con excepcion del client-gateway (ya que este es la puerta de entrada) y payment-ms (por el webhook) 
     ports:
       - "${PAYMENTS_MS_PORT}:${PAYMENTS_MS_PORT}"
     environment:
       - PORT=${PAYMENTS_MS_PORT}
-      - NATS_SERVERS=nats://nats-servers:4222
+      - NATS_SERVERS=${NATS_SERVERS}
       - STRIPE_SECRET=${STRIPE_SECRET}
       - ENDPOINT_SECRET_TESTING=${ENDPOINT_SECRET_TESTING}
       - ENDPOINT_SECRET_OFFICIAL=${ENDPOINT_SECRET_OFFICIAL}
       - STRIPE_SUCCESS_URL=${STRIPE_SUCCESS_URL}
       - STRIPE_CANCEL_URL=${STRIPE_CANCEL_URL}
-
-
-  # Nota IMPORTANTE
-  # durante el build de construccion de la imagen 
-  # Docker no tiene acceso a las variables definidas en la seccion
-  # environment del docker-compose.prod.yml ya que environment solo se 
-  # aplica al ejecutar el contenedor (runtime), no al construirlo 
-  # (build time).
-  # SOLUCION
-  # Pasarle args al dockerfile.prod de auth-ms
-  auth-ms:
-    image: auth-ms-prod
-    build:
-      context: ./auth-ms
-      dockerfile: dockerfile.prod
-      args:
-        - PORT=3004
-        - NATS_SERVERS=nats://nats-servers:4222
-        - DATABASE_URL=${AUTH_DATABASE_URL}
-        - JWT_SECRET=${JWT_SECRET}
-    environment:
-      - PORT=3004
-      - NATS_SERVERS=nats://nats-servers:4222
-      - DATABASE_URL=${AUTH_DATABASE_URL}
-      - JWT_SECRET=${JWT_SECRET}
 
   # stripe:
   #   image: stripe/stripe-cli:latest
@@ -123,5 +88,4 @@ services:
 
 # Ejecutar esto en payments-ms
 # hookdeck listen 3003 stripe-to-localhost --path /payments/webhook
-
-
+  
