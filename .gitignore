@@ -1,3 +1,5 @@
 .env
 
 node_module/
+
+k8s/tienda/*.json

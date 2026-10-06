@@ -49,3 +49,6 @@ docker compose -f docker-compose.prod.yml build
 
 
 docker build -f dockerfile.prod -t client-gateway .
+
+
+gcloud organizations add-iam-policy-binding tienda-microservices-505922 --member=user:gregoryperezfigueredo@gmail.com --role=roles/orgpolicy.policyAdmin
